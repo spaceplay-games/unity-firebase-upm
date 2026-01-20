@@ -1,0 +1,25 @@
+# Git LFS for large binary files
+# Firebase SDK contains native libraries that are large
+# Native libraries
+*.dll filter=lfs diff=lfs merge=lfs -text
+*.so filter=lfs diff=lfs merge=lfs -text
+*.dylib filter=lfs diff=lfs merge=lfs -text
+*.a filter=lfs diff=lfs merge=lfs -text
+*.bundle filter=lfs diff=lfs merge=lfs -text
+# Android
+*.aar filter=lfs diff=lfs merge=lfs -text
+*.jar filter=lfs diff=lfs merge=lfs -text
+# Compiled assets
+*.pdb filter=lfs diff=lfs merge=lfs -text
+# Unity specific
+*.unitypackage filter=lfs diff=lfs merge=lfs -text
+# Ensure consistent line endings for text files
+*.cs text=auto
+*.json text=auto
+*.xml text=auto
+*.md text=auto
+*.yml text=auto
+*.yaml text=auto
+*.sh text eol=lf
+*.ps1 text=auto
+*.cmd text=auto

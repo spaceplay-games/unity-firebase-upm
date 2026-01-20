@@ -1,0 +1,14 @@
+Assets/Firebase/Editor/InstallationsDependencies.xml
+Assets/Firebase/Plugins/Firebase.Installations.dll
+Assets/Firebase/Plugins/Firebase.Installations.pdb
+Assets/Firebase/Plugins/iOS/Firebase.Installations.dll
+Assets/Firebase/Plugins/iOS/Firebase.Installations.pdb
+Assets/Firebase/Plugins/x86_64/FirebaseCppInstallations.bundle
+Assets/Firebase/Plugins/x86_64/FirebaseCppInstallations.dll
+Assets/Firebase/Plugins/x86_64/FirebaseCppInstallations.so
+Assets/Firebase/m2repository/com/google/firebase/firebase-installations-unity/13.6.0/firebase-installations-unity-13.6.0.pom
+Assets/Firebase/m2repository/com/google/firebase/firebase-installations-unity/13.6.0/firebase-installations-unity-13.6.0.srcaar
+Assets/Firebase/m2repository/com/google/firebase/firebase-installations-unity/maven-metadata.xml
+Assets/Plugins/iOS/Firebase/libFirebaseCppInstallations.a
+Assets/Plugins/tvOS/Firebase/libFirebaseCppInstallations.a
+Assets/package.json

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell:*)",
+      "Bash(cmd //c \"scripts\\\\update-packages.cmd\")",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"c:/unity-firebase-upm/scripts/update-packages.ps1\" -Force)",
+      "Bash(du:*)",
+      "Bash(find:*)",
+      "Bash(git lfs install:*)",
+      "Bash(git lfs track:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

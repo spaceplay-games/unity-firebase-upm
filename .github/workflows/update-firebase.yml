@@ -1,0 +1,259 @@
+name: Update Firebase Packages
+
+on:
+  schedule:
+    # Check daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force update even if version matches'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  # Firebase packages to track (download from Google's registry)
+  FIREBASE_PACKAGES: >-
+    com.google.firebase.app
+    com.google.firebase.analytics
+    com.google.firebase.crashlytics
+    com.google.firebase.app-check
+    com.google.firebase.auth
+    com.google.firebase.firestore
+    com.google.firebase.functions
+    com.google.firebase.storage
+    com.google.firebase.database
+    com.google.firebase.remote-config
+    com.google.firebase.messaging
+    com.google.firebase.installations
+    com.google.firebase.dynamic-links
+
+jobs:
+  check-firebase-version:
+    runs-on: ubuntu-latest
+    outputs:
+      latest_version: ${{ steps.firebase-version.outputs.version }}
+      current_version: ${{ steps.current-version.outputs.version }}
+      should_update: ${{ steps.compare.outputs.should_update }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest Firebase version
+        id: firebase-version
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/firebase/firebase-unity-sdk/releases/latest | jq -r '.tag_name' | sed 's/v//')
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest Firebase version: $LATEST"
+
+      - name: Get current version
+        id: current-version
+        run: |
+          if [ -f "VERSION" ]; then
+            CURRENT=$(cat VERSION)
+          else
+            CURRENT="0.0.0"
+          fi
+          echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          if [ "${{ github.event.inputs.force_update }}" == "true" ]; then
+            echo "should_update=true" >> $GITHUB_OUTPUT
+            echo "Force update requested"
+          elif [ "${{ steps.firebase-version.outputs.version }}" != "${{ steps.current-version.outputs.version }}" ]; then
+            echo "should_update=true" >> $GITHUB_OUTPUT
+            echo "New version available"
+          else
+            echo "should_update=false" >> $GITHUB_OUTPUT
+            echo "Already up to date"
+          fi
+
+  update-packages:
+    needs: check-firebase-version
+    if: needs.check-firebase-version.outputs.should_update == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Firebase packages from Google Registry
+        run: |
+          VERSION="${{ needs.check-firebase-version.outputs.latest_version }}"
+          echo "Downloading Firebase packages v${VERSION} from Google Registry..."
+
+          mkdir -p temp
+
+          # Download each package directly from Google's registry
+          # URL pattern: https://dl.google.com/games/registry/unity/{pkg}/{pkg}-{version}.tgz
+          for pkg in $FIREBASE_PACKAGES; do
+            echo "Downloading $pkg..."
+            url="https://dl.google.com/games/registry/unity/${pkg}/${pkg}-${VERSION}.tgz"
+
+            if curl -L -f -o "temp/${pkg}.tgz" "$url" 2>/dev/null; then
+              echo "✓ Downloaded $pkg"
+            else
+              echo "✗ Failed to download $pkg (may not exist for this version)"
+            fi
+          done
+
+      - name: Extract UPM packages
+        run: |
+          VERSION="${{ needs.check-firebase-version.outputs.latest_version }}"
+
+          for pkg in $FIREBASE_PACKAGES; do
+            tgz_file="temp/${pkg}.tgz"
+
+            if [ -f "$tgz_file" ]; then
+              echo "Extracting $pkg..."
+
+              # Clean and recreate package directory
+              rm -rf "packages/${pkg}"
+              mkdir -p "packages/${pkg}"
+
+              # Extract tgz (strip the 'package' folder)
+              tar -xzf "$tgz_file" -C "packages/${pkg}" --strip-components=1
+
+              echo "✓ Extracted $pkg"
+            fi
+          done
+
+      - name: Download External Dependency Manager
+        run: |
+          echo "Downloading External Dependency Manager..."
+
+          # Get latest EDM4U version from GitHub releases
+          EDM_VERSION=$(curl -s https://api.github.com/repos/googlesamples/unity-jar-resolver/releases/latest \
+            | jq -r '.tag_name' | sed 's/v//')
+
+          # Download from Google's registry (same pattern as Firebase packages)
+          EDM_URL="https://dl.google.com/games/registry/unity/com.google.external-dependency-manager/com.google.external-dependency-manager-${EDM_VERSION}.tgz"
+
+          echo "Downloading EDM4U v${EDM_VERSION}..."
+          if curl -L -f -o "temp/edm4u.tgz" "$EDM_URL" 2>/dev/null; then
+            rm -rf "packages/com.google.external-dependency-manager"
+            mkdir -p "packages/com.google.external-dependency-manager"
+            tar -xzf temp/edm4u.tgz -C "packages/com.google.external-dependency-manager" --strip-components=1
+
+            echo "✓ Extracted EDM4U v${EDM_VERSION}"
+          else
+            echo "✗ Could not download EDM4U"
+          fi
+
+      - name: Cleanup temp files
+        run: rm -rf temp
+
+      - name: Update VERSION file
+        run: |
+          echo "${{ needs.check-firebase-version.outputs.latest_version }}" > VERSION
+
+      - name: List extracted packages
+        run: |
+          echo "Extracted packages:"
+          for dir in packages/*/; do
+            if [ -f "${dir}package.json" ]; then
+              pkg_name=$(basename "$dir")
+              pkg_version=$(jq -r '.version' "${dir}package.json")
+              echo "  - $pkg_name @ $pkg_version"
+            fi
+          done
+
+      - name: Commit and push changes
+        run: |
+          VERSION="${{ needs.check-firebase-version.outputs.latest_version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Update Firebase packages to v${VERSION}"
+          git push origin main
+
+      - name: Generate release body
+        id: release-body
+        run: |
+          VERSION="${{ needs.check-firebase-version.outputs.latest_version }}"
+
+          BODY="## Firebase Unity SDK v${VERSION}
+
+          This release includes the following packages:
+          "
+
+          for dir in packages/*/; do
+            if [ -f "${dir}package.json" ]; then
+              pkg_name=$(basename "$dir")
+              BODY="${BODY}
+          - \`${pkg_name}\`"
+            fi
+          done
+
+          BODY="${BODY}
+
+          ### Installation
+
+          Add to your Unity project's \`Packages/manifest.json\`:
+
+          \`\`\`json
+          \"com.google.firebase.app\": \"https://github.com/${{ github.repository }}.git?path=packages/com.google.firebase.app#v${VERSION}\"
+          \`\`\`
+
+          See [README](https://github.com/${{ github.repository }}#readme) for full installation instructions.
+
+          ### Official Release Notes
+          [Firebase Unity SDK v${VERSION}](https://github.com/firebase/firebase-unity-sdk/releases/tag/v${VERSION})"
+
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.check-firebase-version.outputs.latest_version }}
+          name: Firebase SDK v${{ needs.check-firebase-version.outputs.latest_version }}
+          body: ${{ steps.release-body.outputs.body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-failure:
+    needs: [check-firebase-version, update-packages]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Firebase update failed for v${{ needs.check-firebase-version.outputs.latest_version }}`;
+            const body = `The automated Firebase package update failed. Please check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`;
+
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'automation-failure'
+            });
+
+            const existingIssue = issues.data.find(issue => issue.title === title);
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['automation-failure']
+              });
+            }

@@ -20,7 +20,6 @@ This repository automatically tracks the latest [Firebase Unity SDK](https://git
 | `com.google.firebase.remote-config` | Firebase Remote Config |
 | `com.google.firebase.messaging` | Firebase Cloud Messaging |
 | `com.google.firebase.installations` | Firebase Installations |
-| `com.google.firebase.dynamic-links` | Firebase Dynamic Links |
 | `com.google.external-dependency-manager` | External Dependency Manager (EDM4U) |
 
 ## Installation

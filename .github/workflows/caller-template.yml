@@ -1,0 +1,20 @@
+# Template workflow for package repos
+# Copy this to each package repo as .github/workflows/update.yml
+# Replace PACKAGE_NAME with the actual package name
+
+name: Update Package
+
+on:
+  schedule:
+    # Check weekly on Mondays at 6 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update:
+    uses: spaceplay-games/unity-firebase-upm/.github/workflows/update-package.yml@main
+    with:
+      package_name: "PACKAGE_NAME"  # e.g., com.google.firebase.crashlytics
+      package_type: "firebase"       # or "edm" for external-dependency-manager
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}

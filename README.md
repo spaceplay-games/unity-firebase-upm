@@ -32,11 +32,11 @@ Add the packages to your Unity project's `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.google.external-dependency-manager": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.external-dependency-manager",
-    "com.google.firebase.app": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.app",
-    "com.google.firebase.analytics": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.analytics",
-    "com.google.firebase.crashlytics": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.crashlytics",
-    "com.google.firebase.app-check": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.app-check"
+    "com.google.external-dependency-manager": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.external-dependency-manager",
+    "com.google.firebase.app": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.app",
+    "com.google.firebase.analytics": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.analytics",
+    "com.google.firebase.crashlytics": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.crashlytics",
+    "com.google.firebase.app-check": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.app-check"
   }
 }
 ```
@@ -48,7 +48,7 @@ Pin to a specific Firebase version using git tags:
 ```json
 {
   "dependencies": {
-    "com.google.firebase.app": "https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.app#v13.6.0"
+    "com.google.firebase.app": "https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.app#v13.6.0"
   }
 }
 ```
@@ -58,7 +58,7 @@ Pin to a specific Firebase version using git tags:
 1. Open Unity
 2. Go to **Window > Package Manager**
 3. Click the **+** button and select **Add package from git URL...**
-4. Enter: `https://github.com/YOUR-USERNAME/unity-firebase-upm.git?path=packages/com.google.firebase.app`
+4. Enter: `https://github.com/spaceplay-games/unity-firebase-upm.git?path=packages/com.google.firebase.app`
 5. Repeat for each package you need
 
 ## Package Dependencies

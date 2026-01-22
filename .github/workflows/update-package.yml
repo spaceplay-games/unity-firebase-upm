@@ -101,6 +101,25 @@ jobs:
             exit 1
           fi
 
+      - name: Add missing meta files
+        run: |
+          VERSION="${{ needs.check-version.outputs.latest_version }}"
+
+          # Find EXCLUDED_FILES.md files without corresponding .meta files and create them
+          find . -name "EXCLUDED_FILES.md" -type f | while read -r file; do
+            meta_file="${file}.meta"
+            if [ ! -f "$meta_file" ]; then
+              # Get relative path for export path label
+              rel_path="${file#./}"
+
+              # Generate a deterministic GUID based on the file path
+              guid=$(echo -n "$rel_path" | md5sum | cut -c1-32)
+
+              echo "Creating missing meta file: $meta_file"
+              printf 'fileFormatVersion: 2\nguid: %s\nlabels:\n- gvh\n- gvh_version-%s\n- gvhp_exportpath-%s\ntimeCreated: 0\n' "$guid" "$VERSION" "$rel_path" > "$meta_file"
+            fi
+          done
+
       - name: Commit and push changes
         run: |
           VERSION="${{ needs.check-version.outputs.latest_version }}"

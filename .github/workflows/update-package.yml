@@ -110,6 +110,7 @@ jobs:
           declare -A dirs_with_excluded
 
           while IFS= read -r -d '' file; do
+            [ -f "$file" ] || continue
             file_size=$(stat --format=%s "$file")
             if [ "$file_size" -gt "$SIZE_LIMIT" ]; then
               dir=$(dirname "$file")

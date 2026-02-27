@@ -101,6 +101,58 @@ jobs:
             exit 1
           fi
 
+      - name: Remove files exceeding GitHub size limit
+        run: |
+          VERSION="${{ needs.check-version.outputs.latest_version }}"
+          SIZE_LIMIT=$((100 * 1024 * 1024))  # 100MB
+
+          # Find directories containing oversized files
+          declare -A dirs_with_excluded
+
+          while IFS= read -r -d '' file; do
+            file_size=$(stat --format=%s "$file")
+            if [ "$file_size" -gt "$SIZE_LIMIT" ]; then
+              dir=$(dirname "$file")
+              base=$(basename "$file")
+              size_mb=$(( file_size / 1024 / 1024 ))
+
+              echo "Removing oversized file: $file (${size_mb}MB)"
+              rm -f "$file"
+              rm -f "${file}.meta"
+
+              # Append to the list for this directory
+              dirs_with_excluded["$dir"]+="- \`${base}\` (${size_mb}MB)"$'\n'
+            fi
+          done < <(find . -type f -not -path './.git/*' -not -path './.github/*' -print0)
+
+          # Create EXCLUDED_FILES.md in each affected directory
+          for dir in "${!dirs_with_excluded[@]}"; do
+            excluded_file="${dir}/EXCLUDED_FILES.md"
+            echo "Creating ${excluded_file}"
+            cat > "$excluded_file" <<EOF
+          # Excluded Large Files
+
+          The following files exceed GitHub's 100MB file size limit and are excluded from this repository:
+
+          ${dirs_with_excluded[$dir]}
+          ## Impact
+
+          **Mobile development (iOS/Android)**: Not affected. All mobile plugins are included.
+
+          **Desktop development (Windows)**: Not affected if the Windows DLL is under 100MB.
+
+          ## Workaround
+
+          Download the files manually from Google's registry:
+
+          \`\`\`
+          https://dl.google.com/games/registry/unity/${{ inputs.package_name }}/${{ inputs.package_name }}-${VERSION}.tgz
+          \`\`\`
+
+          Extract and copy the missing files to the appropriate directory.
+          EOF
+          done
+
       - name: Add missing meta files
         run: |
           VERSION="${{ needs.check-version.outputs.latest_version }}"

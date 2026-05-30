@@ -29,13 +29,28 @@ jobs:
 
       - name: Get latest version
         id: get-version
+        env:
+          # Authenticate the API call. Unauthenticated requests from GitHub-hosted
+          # runners share an IP pool and routinely hit the 60/hour rate limit,
+          # which returns an error JSON with no .tag_name -> VERSION becomes "null".
+          GH_TOKEN: ${{ secrets.REPO_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ inputs.package_type }}" == "edm" ]; then
             # EDM4U version from GitHub releases
-            VERSION=$(curl -s https://api.github.com/repos/googlesamples/unity-jar-resolver/releases/latest | jq -r '.tag_name' | sed 's/v//')
+            REPO="googlesamples/unity-jar-resolver"
           else
             # Firebase version from GitHub releases
-            VERSION=$(curl -s https://api.github.com/repos/firebase/firebase-unity-sdk/releases/latest | jq -r '.tag_name' | sed 's/v//')
+            REPO="firebase/firebase-unity-sdk"
+          fi
+          VERSION=$(curl -sSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/releases/latest" | jq -r '.tag_name' | sed 's/v//')
+          # Fail loudly instead of silently building a "...-null.tgz" URL that 404s.
+          if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
+            echo "ERROR: could not resolve latest version for ${REPO} (got '${VERSION}'). Likely API rate limit or auth failure." >&2
+            exit 1
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Latest version: $VERSION"
